@@ -1,0 +1,20 @@
+# 机器相关 / 含凭证的真实配置，永不提交（示例文件用 *.example.* 命名）
+settings.json
+settings.local.json
+config.toml
+auth.json
+.credentials.json
+.env
+.env.*
+!.env.example
+
+# 安装脚本产生的备份
+*.bak
+*.bak.*
+
+# 系统与编辑器
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp

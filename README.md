@@ -68,6 +68,35 @@ make install-copy
 
 > 软链模式下 `git pull` 后规则立即生效；复制模式下需要重新 `make install-copy`。
 
+## CodeGraph 可选集成
+
+[CodeGraph](https://github.com/colbymchenry/codegraph) 为 Claude Code 和 Codex
+提供本地代码知识图谱。仓库根目录存在有效的 `.codegraph/` 索引时，本项目生成的
+规则会要求 Agent 优先通过 `codegraph_explore` 理解符号、调用链和变更影响范围，
+再决定读取或修改哪些文件。
+
+CodeGraph 是独立的开发工具，不由本仓库安装或固定版本。先按上游文档安装 CLI，
+再配置两个 Agent：
+
+```bash
+codegraph install --target=claude,codex --location=global --yes
+
+# CodeGraph 安装器也会写入全局规则文件；重新生成并安装，恢复单一事实源
+make sync
+make install        # 复制模式改用 make install-copy
+```
+
+每个项目自行决定是否建立本地索引：
+
+```bash
+cd /path/to/project
+codegraph init
+codegraph status
+```
+
+`.codegraph/` 中的数据库、日志和守护进程文件属于机器本地数据，不应提交。CodeGraph
+负责减少代码结构理解偏差，但不替代需求约束、测试、代码审查或 CI。
+
 ## 命令速查
 
 | 命令 | 作用 |

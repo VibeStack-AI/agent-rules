@@ -1,5 +1,5 @@
 // 功能一：把全局规则文件安装/更新到 Claude Code 与 Codex CLI。
-import { existsSync, lstatSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, lstatSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -70,10 +70,13 @@ function backup(key, stamp) {
 }
 
 // 判断某个平台当前处于什么状态，供确认前预览与实际写入共用。
-// missing=源文件缺失 create=新建 same=已是最新 update=覆盖 link=原为软链
+// missing=源文件缺失 blocked=平台目录被普通文件占用 create=新建
+// same=已是最新 update=覆盖 link=原为软链
 function inspect(key) {
+  const dir = TARGETS[key].dir()
   const dst = dest(key)
   if (!existsSync(TARGETS[key].src)) return 'missing'
+  if (exists(dir) && !statSync(dir, { throwIfNoEntry: false })?.isDirectory()) return 'blocked'
   if (!exists(dst)) return 'create'
   if (lstatSync(dst).isSymbolicLink()) return 'link'
   return sameContent(TARGETS[key].src, dst) ? 'same' : 'update'
@@ -81,6 +84,7 @@ function inspect(key) {
 
 const PLAN_LABEL = {
   missing: '规则源文件缺失',
+  blocked: '平台目录被同名文件占用，无法写入',
   create: '新建（无需备份）',
   same: '已是最新，将跳过',
   update: '内容有变化，覆盖前先备份',
@@ -96,12 +100,22 @@ function installOne(key, state, stamp) {
     fail(`${name}：缺少规则源文件 ${src}`)
     return false
   }
+  if (state === 'blocked') {
+    fail(`${name}：${TARGETS[key].dir()} 是一个文件，不是目录`)
+    dim(`请先移走或删除它，再重新运行：mv "${TARGETS[key].dir()}" "${TARGETS[key].dir()}.bak"`)
+    return false
+  }
   if (state === 'same') {
     ok(`${name}：已是最新，跳过`)
     return true
   }
 
-  mkdirSync(dirname(dst), { recursive: true })
+  try {
+    mkdirSync(dirname(dst), { recursive: true })
+  } catch (err) {
+    fail(`${name}：创建目录 ${dirname(dst)} 失败（${err.message}）`)
+    return false
+  }
 
   if (state !== 'create') {
     let saved = ''
@@ -116,7 +130,12 @@ function installOne(key, state, stamp) {
     rmSync(dst)
   }
 
-  writeFileSync(dst, readFileSync(src))
+  try {
+    writeFileSync(dst, readFileSync(src))
+  } catch (err) {
+    fail(`${name}：写入 ${dst} 失败（${err.message}）`)
+    return false
+  }
   ok(`${name}：已写入 ${dst}`)
   return true
 }
@@ -138,7 +157,8 @@ export async function installRules({ target = 'all', yes = false } = {}) {
     ok('规则已是最新，无需改动。')
     return true
   }
-  if (plan.some(({ state }) => state !== 'create')) {
+  // 只有 update / link 会真正产生备份
+  if (plan.some(({ state }) => state === 'update' || state === 'link')) {
     dim(`备份位置：<平台目录>/backup/${stamp}/`)
   }
 
@@ -148,10 +168,12 @@ export async function installRules({ target = 'all', yes = false } = {}) {
   }
 
   const results = plan.map(({ key, state }) => installOne(key, state, stamp))
+  console.log()
   if (results.every(Boolean)) {
-    console.log()
     ok('完成。重开一个会话即可加载新规则。')
     return true
   }
+  const failed = plan.filter((_, i) => !results[i]).map(({ key }) => TARGETS[key].name)
+  fail(`以下平台未完成：${failed.join('、')}（其余平台已按上面的结果处理）`)
   return false
 }

@@ -43,5 +43,14 @@ jobs:
           node bin/cli.mjs rules --target codex --yes
           grep -qx old "$(find /tmp/fake/.codex/backup -name AGENTS.md | head -1)"
 
+      - name: 单平台失败不影响另一平台
+        run: |
+          touch /tmp/occupied
+          if CLAUDE_HOME=/tmp/occupied CODEX_HOME=/tmp/partial/.codex \
+             node bin/cli.mjs rules --yes; then
+            echo "预期失败却返回成功"; exit 1
+          fi
+          test -f /tmp/partial/.codex/AGENTS.md
+
       - name: npm 包内容校验
         run: npm pack --dry-run

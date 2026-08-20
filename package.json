@@ -1,6 +1,6 @@
 {
   "name": "@vibestack-ai/agent-rules",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "一份规则，同时驱动 Claude Code 与 Codex CLI 的全局规则文件",
   "keywords": ["claude-code", "codex", "agent", "rules", "codegraph"],
   "homepage": "https://github.com/VibeStack-AI/agent-rules#readme",

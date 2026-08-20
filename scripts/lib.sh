@@ -19,8 +19,6 @@ die()   { printf '%s\n' "${C_RED} ✗${C_RESET} $*" >&2; exit 1; }
 # 仓库根目录：脚本所在目录的上一级
 _lib_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${_lib_dir}/.." && pwd)"
+# 供 source 本文件的脚本使用；单独分析本文件时看不到使用点，故豁免 SC2034
+# shellcheck disable=SC2034
 readonly REPO_ROOT
-
-# 生成产物（npm 包随包分发，由 CLI 写入 ~/.claude 与 ~/.codex）
-CLAUDE_RULES_SRC="${REPO_ROOT}/dist/claude/CLAUDE.md"
-CODEX_RULES_SRC="${REPO_ROOT}/dist/codex/AGENTS.md"

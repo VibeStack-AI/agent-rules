@@ -4,6 +4,7 @@
 #   sync.sh            重新生成 dist/
 #   sync.sh --check    只校验 dist/ 是否与 rules/ 一致（CI 用，有漂移则退出码 1）
 
+# shellcheck source=scripts/lib.sh
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib.sh"
 
 CHECK_ONLY=false
@@ -15,13 +16,17 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
+# 生成产物：npm 包随包分发，由 CLI 写入 ~/.claude 与 ~/.codex
+CLAUDE_RULES_SRC="${REPO_ROOT}/dist/claude/CLAUDE.md"
+CODEX_RULES_SRC="${REPO_ROOT}/dist/codex/AGENTS.md"
+
 CORE="${REPO_ROOT}/rules/core.md"
 CLAUDE_HEADER="${REPO_ROOT}/rules/platform/claude.header.md"
 CLAUDE_PLATFORM="${REPO_ROOT}/rules/platform/claude.md"
 CODEX_PLATFORM="${REPO_ROOT}/rules/platform/codex.md"
 
 for f in "$CORE" "$CLAUDE_HEADER" "$CLAUDE_PLATFORM" "$CODEX_PLATFORM"; do
-  [[ -f "$f" ]] || die "缺少源文件：${f#$REPO_ROOT/}"
+  [[ -f "$f" ]] || die "缺少源文件：${f#"$REPO_ROOT"/}"
 done
 
 BANNER='<!-- 由 rules/ 生成，请勿直接编辑；改 rules/ 后运行 make sync -->'

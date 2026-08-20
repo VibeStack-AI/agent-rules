@@ -11,6 +11,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
       - name: dist/ 与 rules/ 一致性校验
         run: make check
 
@@ -19,13 +23,25 @@ jobs:
           sudo apt-get update -qq && sudo apt-get install -y shellcheck
           shellcheck -x scripts/*.sh
 
-      - name: 安装脚本冒烟测试（隔离 HOME）
+      - name: 单元测试（菜单键位）
+        run: npm test
+
+      - name: CLI 冒烟测试（隔离 HOME）
         env:
           CLAUDE_HOME: /tmp/fake/.claude
           CODEX_HOME: /tmp/fake/.codex
         run: |
-          ./scripts/install.sh --target all --yes
-          test -L /tmp/fake/.claude/CLAUDE.md
-          test -L /tmp/fake/.codex/AGENTS.md
-          ./scripts/install.sh --target all --uninstall --yes
-          test ! -e /tmp/fake/.claude/CLAUDE.md
+          node bin/cli.mjs --help
+          node bin/cli.mjs rules --yes
+          diff -q /tmp/fake/.claude/CLAUDE.md dist/claude/CLAUDE.md
+          diff -q /tmp/fake/.codex/AGENTS.md dist/codex/AGENTS.md
+          # 重复执行应幂等，且不产生备份
+          node bin/cli.mjs rules --yes
+          test ! -d /tmp/fake/.claude/backup
+          # 已有文件应被完整备份到 backup/<时间戳>/
+          echo old > /tmp/fake/.codex/AGENTS.md
+          node bin/cli.mjs rules --target codex --yes
+          grep -qx old "$(find /tmp/fake/.codex/backup -name AGENTS.md | head -1)"
+
+      - name: npm 包内容校验
+        run: npm pack --dry-run

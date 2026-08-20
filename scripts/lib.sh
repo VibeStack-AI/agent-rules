@@ -21,29 +21,6 @@ _lib_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${_lib_dir}/.." && pwd)"
 readonly REPO_ROOT
 
-# 安装目标
-CLAUDE_HOME="${CLAUDE_HOME:-$HOME/.claude}"
-CODEX_HOME="${CODEX_HOME:-$HOME/.codex}"
-CLAUDE_RULES_DST="${CLAUDE_HOME}/CLAUDE.md"
-CODEX_RULES_DST="${CODEX_HOME}/AGENTS.md"
-
-# 生成产物
+# 生成产物（npm 包随包分发，由 CLI 写入 ~/.claude 与 ~/.codex）
 CLAUDE_RULES_SRC="${REPO_ROOT}/dist/claude/CLAUDE.md"
 CODEX_RULES_SRC="${REPO_ROOT}/dist/codex/AGENTS.md"
-
-timestamp() { date +%Y%m%d-%H%M%S; }
-
-# 备份已存在且非本仓库软链的文件，返回备份路径
-backup_file() {
-  local target="$1" backup
-  backup="${target}.bak.$(timestamp)"
-  cp -p "$target" "$backup"
-  printf '%s' "$backup"
-}
-
-# 判断 $1 是否为指向 $2 的软链
-is_link_to() {
-  local link="$1" want="$2"
-  [[ -L "$link" ]] || return 1
-  [[ "$(readlink "$link")" == "$want" ]]
-}

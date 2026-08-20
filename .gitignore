@@ -12,6 +12,11 @@ auth.json
 *.bak
 *.bak.*
 
+# Node / npm
+node_modules/
+*.tgz
+package-lock.json
+
 # 系统与编辑器
 .DS_Store
 Thumbs.db
